@@ -1,11 +1,8 @@
-📡 Raspberry Pi ile DHCP Starvation Saldırısı Simülasyonu
-Ders: Ankara Üniversitesi - YMH347 Mikroişlemciler ve Programlama
+📡 Raspberry Pi ile DHCP Starvation Saldırısı Deneyi
 
-Dönem: 2025-2026 Güz
+Platform: Raspberry Pi 3B+ (DietPi OS) & Python
 
-Platform: Raspberry Pi (DietPi OS) & Python
-
-Bu proje, yerel ağlarda (LAN/WLAN) DHCP (Dynamic Host Configuration Protocol) güvenliğini test etmek amacıyla geliştirilmiştir. Proje kapsamında, kontrollü bir laboratuvar ortamında DHCP Starvation (Tüketme) saldırısı simüle edilmiş, ağ protokollerinin davranışları ve donanımsal kısıtlamalar analiz edilmiştir.
+Bu proje, yerel ağlarda (LAN/WLAN) DHCP (Dynamic Host Configuration Protocol) güvenliğini test etmek amacıyla geliştirilmiştir. Proje kapsamında kontrollü bir laboratuvar ortamında DHCP Starvation (Tüketme) saldırısı simüle edilmiş, ağ protokollerinin davranışları ve donanımsal kısıtlamalar analiz edilmiştir.
 
 🎯 Projenin Amacı
 DHCP protokolü, ağa katılan cihazlara otomatik IP dağıtımı yapar. Bu proje, "DORA" (Discover, Offer, Request, Acknowledge) sürecini manipüle ederek:
